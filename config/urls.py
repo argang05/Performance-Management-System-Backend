@@ -7,11 +7,11 @@ def healthz(request):
 
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
     path("healthz/", healthz),
-    path('api/accounts/', include('accounts.urls')),
-    path('api/employees/', include('employees.urls')),
-    path('api/evaluations/', include('evaluations.urls')),
-    path('api/scoring/', include('scoring.urls')),
+    path("admin/", admin.site.urls),
+    path("api/accounts/", include("accounts.urls")),
+    path("api/employees/", include("employees.urls")),
+    path("api/evaluations/", include("evaluations.urls")),
+    path("api/scoring/", include("scoring.urls")),
     path("api/", include("healthcheck.urls")),
 ]
