@@ -1,0 +1,46 @@
+# Python-generated files
+__pycache__/
+*.pyc
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.env
+venv/
+ENV/
+env.bak/
+venv.balk/
+
+# Django-specific files
+*.log
+*.pot
+local_settings.py  # Used for local configurations/secrets
+db.sqlite3         # The default SQLite database file
+/media/            # User-uploaded media folder (if generated locally)
+/static/           # Collected static files (if generated locally)
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Editor/IDE configurations
+.vscode/           # VS Code
+.idea/             # PyCharm
+*.sublime-workspace
+*.sublime-project
+
+# Operating system files
+.DS_Store          # macOS
+*.manifest
+*.spec
+pip-log.txt
