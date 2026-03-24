@@ -399,8 +399,6 @@ class RMSaveDraftView(APIView):
 
         return Response({"message": "Draft saved"})
 
-
-
 class RMSubmitReviewView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -473,7 +471,6 @@ class SkipPendingReviewsView(APIView):
             })
 
         return Response({"results": data})
-
 
 class SkipReviewFormView(APIView):
     permission_classes = [IsAuthenticated]
@@ -724,23 +721,15 @@ class PeerEmployeeSearchView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+
         User = get_user_model()
 
         query = request.query_params.get("q", "").strip()
-        employee = request.user
-
-        excluded_ids = [
-            employee.id,
-            employee.reporting_manager_id,
-            employee.skip_level_manager_id,
-        ]
-        excluded_ids = [x for x in excluded_ids if x]
 
         employees = User.objects.filter(
-            band=employee.band,
             is_active=True
         ).exclude(
-            id__in=excluded_ids
+            id=request.user.id
         )
 
         if query:
@@ -753,6 +742,7 @@ class PeerEmployeeSearchView(APIView):
         employees = employees.order_by("first_name", "last_name")[:25]
 
         data = []
+
         for e in employees:
             data.append({
                 "id": e.id,
@@ -767,6 +757,7 @@ class PeerRecommendView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+
         User = get_user_model()
 
         questionnaire_id = request.data.get("questionnaire_id")
@@ -785,29 +776,10 @@ class PeerRecommendView(APIView):
 
         peer = get_object_or_404(User, id=peer_id)
 
-        employee = request.user
-
-        if peer.band != employee.band:
-            return Response(
-                {"error": "Peer reviewer must belong to same band."},
-                status=400
-            )
-
-        if peer.id == employee.id:
+        # Only rule now
+        if peer.id == request.user.id:
             return Response(
                 {"error": "You cannot recommend yourself as peer reviewer."},
-                status=400
-            )
-
-        if employee.reporting_manager_id and peer.id == employee.reporting_manager_id:
-            return Response(
-                {"error": "Reporting manager cannot be peer reviewer."},
-                status=400
-            )
-
-        if employee.skip_level_manager_id and peer.id == employee.skip_level_manager_id:
-            return Response(
-                {"error": "Skip level manager cannot be peer reviewer."},
                 status=400
             )
 
@@ -817,7 +789,6 @@ class PeerRecommendView(APIView):
         questionnaire.save()
 
         return Response({"message": "Peer review request sent successfully"})
-
 
 class PeerPendingReviewsView(APIView):
     permission_classes = [IsAuthenticated]
