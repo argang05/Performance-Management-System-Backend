@@ -377,7 +377,7 @@ class RMSaveDraftView(APIView):
     def post(self, request):
 
         questionnaire_id = request.data.get("questionnaire_id")
-        responses = request.data.get("responses")
+        responses = request.data.get("responses", [])
 
         questionnaire = EmployeeQuestionnaire.objects.get(id=questionnaire_id)
 
@@ -386,9 +386,16 @@ class RMSaveDraftView(APIView):
             evaluator_type="rm"
         )
 
+        submission.submitted_by = request.user
+        submission.status = "draft"
+        submission.save()
+
         for r in responses:
 
-            item = EmployeeQuestionnaireItem.objects.get(id=r["item_id"])
+            item = EmployeeQuestionnaireItem.objects.get(
+                id=r["item_id"],
+                employee_questionnaire=questionnaire
+            )
 
             EmployeeQuestionnaireResponse.objects.update_or_create(
                 submission=submission,
@@ -398,6 +405,7 @@ class RMSaveDraftView(APIView):
             )
 
         return Response({"message": "Draft saved"})
+
 
 class RMSubmitReviewView(APIView):
     permission_classes = [IsAuthenticated]
@@ -418,14 +426,19 @@ class RMSubmitReviewView(APIView):
             evaluator_type="rm"
         )
 
+        submission.submitted_by = request.user
         submission.feedback = feedback
         submission.scope_of_improvement = scope
+        submission.status = "submitted"
         submission.submitted_at = timezone.now()
         submission.save()
 
         for r in responses:
 
-            item = EmployeeQuestionnaireItem.objects.get(id=r["item_id"])
+            item = EmployeeQuestionnaireItem.objects.get(
+                id=r["item_id"],
+                employee_questionnaire=questionnaire
+            )
 
             EmployeeQuestionnaireResponse.objects.update_or_create(
                 submission=submission,
@@ -434,9 +447,7 @@ class RMSubmitReviewView(APIView):
                 defaults={"score": r["score"]}
             )
 
-        rm_band = request.user.band
-
-        questionnaire.status = "rm_reviewed"
+        rm_band = str(request.user.band or "").upper()
 
         if rm_band in ["SM1", "SM2"]:
             questionnaire.status = "completed"
@@ -446,6 +457,7 @@ class RMSubmitReviewView(APIView):
         questionnaire.save()
 
         return Response({"message": "RM Review Submitted"})
+
 
 class SkipPendingReviewsView(APIView):
     permission_classes = [IsAuthenticated]
