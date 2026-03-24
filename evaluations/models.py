@@ -55,32 +55,20 @@ class ReviewCycle(models.Model):
         return self.name
 
 class EmployeeQuestionnaire(models.Model):
-
     STATUS_CHOICES = [
-        ("draft", "Draft"),
-        ("self_submitted", "Self Submitted"),
-        ("under_rm_review", "Under RM Review"),
-        ("rm_reviewed", "RM Reviewed"),
-        ("under_skip_review", "Under Skip Review"),
-        ("skip_reviewed", "Skip Reviewed"),
+    ("draft", "Draft"),
+    ("self_submitted", "Self Submitted"),
+    ("under_rm_review", "Under RM Review"),
+    ("rm_reviewed", "RM Reviewed"),
+    ("under_skip_review", "Under Skip Review"),
+    ("skip_reviewed", "Skip Reviewed"),
+    ("under_peer_review", "Under Peer Review"),
+    ("completed", "Completed"),
     ]
 
-    employee = models.ForeignKey(
-        "employees.Employee",
-        on_delete=models.CASCADE
-    )
-
-    review_cycle = models.ForeignKey(
-        "ReviewCycle",
-        on_delete=models.CASCADE
-    )
-
-    status = models.CharField(
-        max_length=50,
-        choices=STATUS_CHOICES,
-        default="draft"
-    )
-
+    employee = models.ForeignKey("employees.Employee", on_delete=models.CASCADE)
+    review_cycle = models.ForeignKey("ReviewCycle", on_delete=models.CASCADE)
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default="draft")
     submitted_at = models.DateTimeField(null=True, blank=True)
 
     peer_reviewer = models.ForeignKey(
@@ -88,14 +76,11 @@ class EmployeeQuestionnaire(models.Model):
         null=True,
         blank=True,
         related_name="peer_reviews",
-        on_delete=models.SET_NULL
+        on_delete=models.SET_NULL,
     )
-
     peer_requested_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
-
-
 
 class EmployeeQuestionnaireItem(models.Model):
     employee_questionnaire = models.ForeignKey(
@@ -118,45 +103,37 @@ class EmployeeQuestionnaireItem(models.Model):
 
 
 class EmployeeQuestionnaireStageSubmission(models.Model):
-
     STAGE_CHOICES = [
         ("self", "Self"),
-        ("reporting_manager", "Reporting Manager"),
-        ("skip_level_manager", "Skip Level Manager"),
+        ("rm", "Reporting Manager"),
+        ("skip", "Skip Level Manager"),
         ("peer", "Peer"),
     ]
 
     employee_questionnaire = models.ForeignKey(
-        EmployeeQuestionnaire,
+        "EmployeeQuestionnaire",
         on_delete=models.CASCADE
     )
 
     evaluator_type = models.CharField(
-        max_length=50,
+        max_length=20,
         choices=STAGE_CHOICES
     )
 
     submitted_by = models.ForeignKey(
-        Employee,
+        "employees.Employee",
         on_delete=models.SET_NULL,
         null=True,
         blank=True
     )
 
     feedback = models.TextField(blank=True, null=True)
-
     scope_of_improvement = models.TextField(blank=True, null=True)
-
-    status = models.CharField(
-        max_length=20,
-        default="draft"
-    )
-
+    status = models.CharField(max_length=20, default="draft")
     submitted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         unique_together = ("employee_questionnaire", "evaluator_type")
-
 
 class EmployeeQuestionnaireResponse(models.Model):
 
