@@ -116,8 +116,5 @@ urlpatterns = [
         "analytics-release/toggle/<int:questionnaire_id>/",
         AnalyticsReleaseToggleView.as_view()
     ),
-    path(
-        "my-analytics/<int:questionnaire_id>/",
-        MyAnalyticsReportView.as_view()
-    ),
+    path("my-analytics/<int:questionnaire_id>/", MyAnalyticsReportView.as_view(), name="my_analytics_report"),
 ]

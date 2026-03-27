@@ -44,29 +44,16 @@ class RMPotentialPendingView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        questionnaires = EmployeeQuestionnaire.objects.select_related(
-            "employee",
-            "review_cycle",
-        ).filter(
-            employee__reporting_manager=request.user
+        questionnaires = (
+            EmployeeQuestionnaire.objects
+            .select_related("employee", "review_cycle")
+            .filter(employee__reporting_manager=request.user)
+            .order_by("-id")
         )
 
         results = []
 
         for q in questionnaires:
-            has_perf_score = EmployeePerformanceScore.objects.filter(
-                employee_questionnaire=q,
-                final_effective_score__isnull=False
-            ).exists()
-
-            has_ppi = EmployeePastPerformanceIndex.objects.filter(
-                employee=q.employee,
-                review_cycle=q.review_cycle
-            ).exists()
-
-            if not (has_perf_score and has_ppi):
-                continue
-
             assessment, _ = EmployeePotentialAssessment.objects.get_or_create(
                 employee=q.employee,
                 review_cycle=q.review_cycle,
@@ -95,29 +82,16 @@ class SkipPotentialPendingView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        questionnaires = EmployeeQuestionnaire.objects.select_related(
-            "employee",
-            "review_cycle",
-        ).filter(
-            employee__skip_level_manager=request.user
+        questionnaires = (
+            EmployeeQuestionnaire.objects
+            .select_related("employee", "review_cycle")
+            .filter(employee__skip_level_manager=request.user)
+            .order_by("-id")
         )
 
         results = []
 
         for q in questionnaires:
-            has_perf_score = EmployeePerformanceScore.objects.filter(
-                employee_questionnaire=q,
-                final_effective_score__isnull=False
-            ).exists()
-
-            has_ppi = EmployeePastPerformanceIndex.objects.filter(
-                employee=q.employee,
-                review_cycle=q.review_cycle
-            ).exists()
-
-            if not (has_perf_score and has_ppi):
-                continue
-
             assessment, _ = EmployeePotentialAssessment.objects.get_or_create(
                 employee=q.employee,
                 review_cycle=q.review_cycle,
@@ -126,6 +100,10 @@ class SkipPotentialPendingView(APIView):
                     "status": "pending_rm"
                 }
             )
+
+            # Skip should only work after RM potential is submitted
+            if not assessment.rm_submitted:
+                continue
 
             results.append({
                 "assessment_id": assessment.id,

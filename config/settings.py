@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "evaluations",
     "scoring",
     "common",
+    "admin_console"
 ]
 
 AUTH_USER_MODEL = "employees.Employee"

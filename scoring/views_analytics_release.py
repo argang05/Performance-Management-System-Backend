@@ -4,7 +4,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from evaluations.models import EmployeeQuestionnaire
+from scoring.models import EmployeeAnalyticsRelease, EmployeeNineBoxPlacement, EmployeePastPerformanceIndex, EmployeePerformanceScore, EmployeePotentialScore
+from evaluations.models import EmployeeQuestionnaire, EmployeeQuestionnaireStageSubmission
 from scoring.services_analytics_release import (
     get_or_create_analytics_release,
     get_analytics_readiness,
@@ -120,19 +121,95 @@ class MyAnalyticsReportView(APIView):
             id=questionnaire_id
         )
 
+        # employee can only view their own analytics
         if questionnaire.employee_id != request.user.id:
             return Response(
-                {"error": "You are not authorized to view this analytics report."},
+                {"error": "You are not allowed to view this analytics report."},
                 status=403
             )
 
-        analytics_release = get_or_create_analytics_release(questionnaire)
+        release_obj = EmployeeAnalyticsRelease.objects.filter(
+            employee_questionnaire=questionnaire
+        ).first()
 
-        if not analytics_release.is_released_to_employee:
+        if not release_obj or not release_obj.is_released_to_employee:
             return Response(
-                {"message": "Analytics report has not been released yet."},
+                {"error": "Analytics report has not been released yet."},
                 status=403
             )
 
-        report = build_employee_analytics_report(questionnaire)
-        return Response(report)
+        performance_score = EmployeePerformanceScore.objects.filter(
+            employee_questionnaire=questionnaire
+        ).first()
+
+        ppi = EmployeePastPerformanceIndex.objects.filter(
+            employee=questionnaire.employee,
+            review_cycle=questionnaire.review_cycle
+        ).first()
+
+        potential = EmployeePotentialScore.objects.filter(
+            employee_questionnaire=questionnaire
+        ).first()
+
+        nine_box = EmployeeNineBoxPlacement.objects.filter(
+            employee_questionnaire=questionnaire
+        ).first()
+
+        feedback_sections = []
+
+        submissions = EmployeeQuestionnaireStageSubmission.objects.filter(
+            employee_questionnaire=questionnaire,
+            evaluator_type__in=["self", "rm", "skip", "peer"],
+            status="submitted"
+        ).select_related("submitted_by")
+
+        role_map = {
+            "self": "Self",
+            "rm": "Reporting Manager",
+            "skip": "Skip-Level Manager",
+            "peer": "Peer Reviewer",
+        }
+
+        for submission in submissions:
+            feedback_sections.append({
+                "role": role_map.get(submission.evaluator_type, submission.evaluator_type),
+                "evaluator_name": (
+                    submission.submitted_by.full_name
+                    if submission.submitted_by and getattr(submission.submitted_by, "full_name", None)
+                    else "—"
+                ),
+                "feedback": submission.feedback,
+                "scope_of_improvement": submission.scope_of_improvement,
+                "submitted_at": submission.submitted_at,
+            })
+
+        return Response({
+            "employee_name": questionnaire.employee.full_name,
+            "employee_number": questionnaire.employee.employee_number,
+            "review_cycle": questionnaire.review_cycle.name if questionnaire.review_cycle else None,
+
+            "performance_score": {
+                "system_final_score": performance_score.system_final_score if performance_score else None,
+                "hr_override_score": performance_score.hr_override_score if performance_score else None,
+                "final_effective_score": performance_score.final_effective_score if performance_score else None,
+            } if performance_score and release_obj.show_performance_score else None,
+
+            "ppi": {
+                "ppi_score": ppi.ppi_score if ppi else None,
+            } if ppi and release_obj.show_ppi else None,
+
+            "potential": {
+                "final_potential_score": potential.final_potential_score if potential else None,
+            } if potential and release_obj.show_potential_score else None,
+
+            "nine_box": {
+                "ppi_score": nine_box.ppi_score if nine_box else None,
+                "potential_score": nine_box.potential_score if nine_box else None,
+                "performance_bucket": nine_box.performance_bucket if nine_box else None,
+                "potential_bucket": nine_box.potential_bucket if nine_box else None,
+                "box_label": nine_box.box_label if nine_box else None,
+                "box_description": nine_box.box_description if nine_box else None,
+            } if nine_box and release_obj.show_nine_box else None,
+
+            "feedback_sections": feedback_sections,
+        })

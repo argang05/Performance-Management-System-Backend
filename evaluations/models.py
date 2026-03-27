@@ -54,16 +54,17 @@ class ReviewCycle(models.Model):
     def __str__(self):
         return self.name
 
+
 class EmployeeQuestionnaire(models.Model):
     STATUS_CHOICES = [
-    ("draft", "Draft"),
-    ("self_submitted", "Self Submitted"),
-    ("under_rm_review", "Under RM Review"),
-    ("rm_reviewed", "RM Reviewed"),
-    ("under_skip_review", "Under Skip Review"),
-    ("skip_reviewed", "Skip Reviewed"),
-    ("under_peer_review", "Under Peer Review"),
-    ("completed", "Completed"),
+        ("draft", "Draft"),
+        ("self_submitted", "Self Submitted"),
+        ("under_rm_review", "Under RM Review"),
+        ("rm_reviewed", "RM Reviewed"),
+        ("under_skip_review", "Under Skip Review"),
+        ("skip_reviewed", "Skip Reviewed"),
+        ("under_peer_review", "Under Peer Review"),
+        ("completed", "Completed"),
     ]
 
     employee = models.ForeignKey("employees.Employee", on_delete=models.CASCADE)
@@ -81,6 +82,10 @@ class EmployeeQuestionnaire(models.Model):
     peer_requested_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("employee", "review_cycle")
+
 
 class EmployeeQuestionnaireItem(models.Model):
     employee_questionnaire = models.ForeignKey(
@@ -161,3 +166,6 @@ class EmployeeQuestionnaireResponse(models.Model):
         choices=REVIEWER_TYPE_CHOICES,
         default="self"
     )
+
+    class Meta:
+        unique_together = ("submission", "questionnaire_item", "reviewer_type")
