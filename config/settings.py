@@ -1,7 +1,7 @@
 from pathlib import Path
 from dotenv import load_dotenv
 import os
-from urllib.parse import urlsplit
+from urllib.parse import urlparse, parse_qsl, unquote
 from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -71,24 +71,22 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-tmpPostgres = urlsplit(os.getenv("DATABASE_URL"))
-db_name = tmpPostgres.path[1:]
-db_host = tmpPostgres.hostname
-db_port = tmpPostgres.port
-db_user = tmpPostgres.username
-db_password = tmpPostgres.password
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is not configured.")
+
+tmpPostgres = urlparse(DATABASE_URL)
 
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": db_name,
-        "USER": db_user,
-        "PASSWORD": db_password,
-        "HOST": db_host,
-        "PORT": db_port,
-        "OPTIONS": {
-            "sslmode": "require",
-        },
+        "NAME": unquote(tmpPostgres.path.lstrip("/")),
+        "USER": unquote(tmpPostgres.username or ""),
+        "PASSWORD": unquote(tmpPostgres.password or ""),
+        "HOST": tmpPostgres.hostname,
+        "PORT": tmpPostgres.port or 5432,
+        "OPTIONS": dict(parse_qsl(tmpPostgres.query)),
         "CONN_MAX_AGE": 600,
     }
 }
@@ -117,6 +115,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
     {
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
