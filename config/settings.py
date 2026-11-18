@@ -1,8 +1,8 @@
 from pathlib import Path
 from dotenv import load_dotenv
-import os
-from urllib.parse import urlparse, parse_qsl, unquote
 from datetime import timedelta
+import os
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
@@ -34,7 +34,7 @@ INSTALLED_APPS = [
     "evaluations",
     "scoring",
     "common",
-    "admin_console"
+    "admin_console",
 ]
 
 AUTH_USER_MODEL = "employees.Employee"
@@ -45,6 +45,7 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -76,19 +77,13 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is not configured.")
 
-tmpPostgres = urlparse(DATABASE_URL)
-
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": unquote(tmpPostgres.path.lstrip("/")),
-        "USER": unquote(tmpPostgres.username or ""),
-        "PASSWORD": unquote(tmpPostgres.password or ""),
-        "HOST": tmpPostgres.hostname,
-        "PORT": tmpPostgres.port or 5432,
-        "OPTIONS": dict(parse_qsl(tmpPostgres.query)),
-        "CONN_MAX_AGE": 600,
-    }
+    "default": dj_database_url.parse(
+        DATABASE_URL,
+        conn_max_age=600,
+        conn_health_checks=True,
+        ssl_require=True,
+    )
 }
 
 REST_FRAMEWORK = {
@@ -119,9 +114,6 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
 ]
 
 LANGUAGE_CODE = "en-us"
@@ -130,4 +122,6 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
